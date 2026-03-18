@@ -1,9 +1,9 @@
 # COMP 3380 Group Project
 
-# Introduction
+## Introduction
 
-# Why did we choose this dataset?
+## Why did we choose this dataset?
 
-# ER, EER and Relational Models
+## ER, EER and Relational Models
 
-# Normalization
+## Normalization
