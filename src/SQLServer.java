@@ -96,7 +96,7 @@ public class SQLServer {
         System.out.println(" 5   -> Lap degradation");
         System.out.println(" 6   -> Most championship points in a season");
         System.out.println(" 7   -> Most consecutive driver wins");
-        System.out.println(" 8   -> Drivers with most DNFs");
+        System.out.println(" 8   -> Drivers with most DNFs per season");
         System.out.println(" 9   -> Most wins but not champions");
         System.out.println(" 10  -> Races for a single constructor where no drivers are classified");
         System.out.println(" 11  -> Races where all drivers are classified");
