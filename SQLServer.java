@@ -100,6 +100,25 @@ public class SQLServer {
                     case "18":
                         db.listCircuits();
                         break;
+                    case "19":
+                        System.out.print("Are you sure you want to delete all data? (y/n): ");
+                        String deleteConfirm = scanner.nextLine().trim();
+                        if (deleteConfirm.equalsIgnoreCase("y")) {
+                            db.deleteAllData();
+                        } else {
+                            System.out.println("Delete cancelled.");
+                        }
+                        break;
+
+                    case "20":
+                        System.out.print("Are you sure you want to repopulate the database? (y/n): ");
+                        String loadConfirm = scanner.nextLine().trim();
+                        if (loadConfirm.equalsIgnoreCase("y")) {
+                            db.repopulateDatabase();
+                        } else {
+                            System.out.println("Repopulate cancelled.");
+                        }
+                        break;
                     default:
                         System.out.println("Invalid option. Enter 'h' for help.");
                         break;
@@ -137,6 +156,8 @@ public class SQLServer {
         System.out.println(" 16  -> List drivers");
         System.out.println(" 17  -> List constructors");
         System.out.println(" 18  -> List circuits");
+        System.out.println(" 19  -> Delete all data");
+        System.out.println(" 20  -> Repopulate database");
         System.out.println();
     }
 }

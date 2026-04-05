@@ -1,4 +1,10 @@
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
 public class F1Database {
     private Connection connection; 
 
@@ -1038,6 +1044,121 @@ public class F1Database {
 
         } catch (SQLException e) {
             e.printStackTrace(System.out);
+        }
+    }
+
+    
+    public void deleteAllData() {
+        String[] deleteOrder = {
+            "sprint_results",
+            "constructor_results",
+            "constructor_standings",
+            "driver_standings",
+            "qualifying",
+            "pit_stops",
+            "lap_times",
+            "results",
+            "races",
+            "seasons",
+            "drivers",
+            "constructors",
+            "circuits",
+            "status"
+        };
+
+        try (Statement stmt = connection.createStatement()) {
+            System.out.println("Deleting all data...");
+            for (String table : deleteOrder) {
+                stmt.executeUpdate("DELETE FROM " + table);
+            }
+            System.out.println("All data deleted.");
+        } catch (SQLException e) {
+            e.printStackTrace(System.out);
+        }
+    }
+
+    private void runInsertStatementsFromFile(String filePath) throws IOException, SQLException {
+        List<String> lines = Files.readAllLines(Paths.get(filePath));
+        StringBuilder statementBuilder = new StringBuilder();
+        int batchCount = 0;
+
+        try (Statement stmt = connection.createStatement()) {
+            for (String line : lines) {
+                String trimmed = line.trim();
+                if (trimmed.isEmpty()) continue;
+
+                statementBuilder.append(line).append(" ");
+
+                if (trimmed.endsWith(";")) {
+                    String sql = statementBuilder.toString().trim();
+                    statementBuilder.setLength(0);
+
+                    String upper = sql.toUpperCase();
+                    if (upper.startsWith("INSERT INTO")) {
+                        stmt.addBatch(sql);
+                        batchCount++;
+                    }
+
+                    if (batchCount >= 500) {
+                        stmt.executeBatch();
+                        stmt.clearBatch();
+                        batchCount = 0;
+                    }
+                }
+            }
+
+            if (batchCount > 0) {
+                stmt.executeBatch();
+                stmt.clearBatch();
+            }
+        }
+    }
+
+    public void repopulateDatabase() {
+        String[] files = {
+            "results.sql",
+            "status.sql",
+            "circuits.sql",
+            "constructors.sql",
+            "drivers.sql",
+            "seasons.sql",
+            "races.sql",
+            "lap_times.sql",
+            "pit_stops.sql",
+            "qualifying.sql",
+            "driver_standings.sql",
+            "constructor_standings.sql",
+            "constructor_results.sql",
+            "sprint_results.sql"
+        };
+
+        boolean oldAutoCommit = true;
+
+        try {
+            oldAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+
+            System.out.println("Repopulating database...");
+            for (String file : files) {
+                runInsertStatementsFromFile(file);
+                System.out.println("Loaded: " + file);
+            }
+
+            connection.commit();
+            System.out.println("Database repopulated.");
+        } catch (IOException | SQLException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace(System.out);
+            }
+            e.printStackTrace(System.out);
+        } finally {
+            try {
+                connection.setAutoCommit(oldAutoCommit);
+            } catch (SQLException e) {
+                e.printStackTrace(System.out);
+            }
         }
     }
 }
