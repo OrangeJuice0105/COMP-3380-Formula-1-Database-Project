@@ -24,3 +24,7 @@ This is Group 19's Formula 1 database for the COMP 3380 Winter 2026 project. Ref
 
 Our reference for diagrams can be found [here](docs/references.md).
 
+### Additional docs:
+
+For fast file transfer to Aviary, refer to [this](developerNotes.md).
+
