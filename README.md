@@ -5,8 +5,11 @@ This is Group 19's Formula 1 database for the COMP 3380 Winter 2026 project. Ref
 ### Database files
  
 - Our SQLs for re-populating the data can be found in this [directory](sql).
-
 - Our original dataset can be found in this [directory](datasets). Data extracted from [Kaggle](https://www.kaggle.com/datasets/rohanrao/formula-1-world-championship-1950-2020/?select=qualifying.csv).
+
+### SQL server source code
+
+- Refer to this [directory](src) for source code interacting with Uranium server.
 
 ### Models:
 
