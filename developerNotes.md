@@ -7,7 +7,7 @@ For fast file transferring to Aviary navigate to the [scripts](scripts) director
 - `UMNetId`: Your university's UMNetID.
 - `PwdPath`: The path where you want your files to go to. To look for this, go to your desired directory on Aviary and run `pwd` there to get the relative path.
 
-Once you got identify the parameters, run the script as follows:
+Once you got the desired parameters, run the script as follows:
 
 ```
 .\UploadToAviary -UMNetId [your UMNetID] -PwdPath [your desired path on Aviary]
