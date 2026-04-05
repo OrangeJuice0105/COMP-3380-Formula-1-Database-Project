@@ -11,6 +11,10 @@ This is Group 19's Formula 1 database for the COMP 3380 Winter 2026 project. Ref
 
 - Refer to this [directory](src) for source code interacting with Uranium server.
 
+### Supported queries
+
+- Refer to this [document](docs/SupportedSQLQueires.md) for all currently supported SQL queries.
+
 ### Models:
 
 - Our ER Diagram is found [here](docs/f1_ER_diagram.pdf).
