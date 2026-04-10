@@ -31,7 +31,7 @@ public class SQLServer {
                         printHelp();
                     } else {
                         switch (option) {
-                            case "1" -> db.driversPerformance();
+                            case "1" -> db.driversPerformance(scanner);
                             case "2" -> db.constructorsWithMostDNF();
                             case "3" -> db.hatTrackList();
                             case "4" -> db.grandSlime();
@@ -49,7 +49,7 @@ public class SQLServer {
                             case "12" -> db.winsWithoutPole();
                             case "13" -> db.worstPoleToWinRatio();
                             case "14" -> db.fastestAveragePitStopTeamBySeason();
-                            case "15" -> db.constructorTeammateHeadToHead();
+                            case "15" -> db.constructorTeammateHeadToHead(scanner);
                             case "16" -> db.listDrivers(scanner);
                             case "17" -> db.listConstructors();
                             case "18" -> db.listCircuits();

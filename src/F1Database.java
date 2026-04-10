@@ -2,13 +2,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
 public class F1Database implements AutoCloseable {
 
 
-    private Connection connection; 
+    private Connection connection;
 
     private static final String SOURCE_DIR = "sql/";
 
@@ -41,78 +42,140 @@ public class F1Database implements AutoCloseable {
         connection = DriverManager.getConnection(connectionUrl);
     }
 
-    public void driversPerformance() {
-        try{
-            String sql ="""
-                             SELECT
-                                r.year,
-                                d.driverId,
-                                d.forename,
-                                d.surname,
-                                COUNT(*) AS races,
-                                SUM(CASE WHEN res.positionOrder = 1 THEN 1 ELSE 0 END) AS wins,
-                                SUM(CASE WHEN res.positionOrder <= 3 THEN 1 ELSE 0 END) AS podiums,
-                                SUM(res.points) AS total_points,
-                                ROUND(AVG(res.positionOrder), 2) AS avg_finish
-                            FROM results res
-                            JOIN drivers d ON d.driverId = res.driverId
-                            JOIN races r ON r.raceId = res.raceId
-                            GROUP BY r.year, d.driverId, d.forename, d.surname
-                            ORDER BY r.year, total_points DESC, wins DESC, podiums DESC;
-                        """;
-            PreparedStatement statement = connection.prepareStatement(sql);
-            ResultSet resultSet = statement.executeQuery();
-            System.out.println("Most Successful Drivers By Season");
+    public void driversPerformance(Scanner scanner) {
+        List<Integer> years = new ArrayList<>();
 
-            System.out.printf("%-6s %-10s %-12s %-12s %-6s %-6s %-8s %-14s %-10s\n",
-                    "year", "driverId", "forename", "surname",
-                    "races", "wins", "podiums", "total_points", "avg_finish");
-            System.out.println("------------------------------------------------------");
-            while (resultSet.next()) {
-                System.out.printf("%-6d %-10d %-12s %-12s %-6d %-6d %-8d %-14d %-10.2f\n",
-                        resultSet.getInt("year"),
-                        resultSet.getInt("driverId"),
-                        resultSet.getString("forename"),
-                        resultSet.getString("surname"),
-                        resultSet.getInt("races"),
-                        resultSet.getInt("wins"),
-                        resultSet.getInt("podiums"),
-                        resultSet.getInt("total_points"),
-                        resultSet.getDouble("avg_finish")
-                );
+        String yearsSql = """
+                SELECT DISTINCT r.year
+                FROM races r
+                ORDER BY r.year;
+                """;
+
+        String performanceSql = """
+                SELECT
+                    r.year,
+                    d.driverId,
+                    d.forename,
+                    d.surname,
+                    COUNT(*) AS races,
+                    SUM(CASE WHEN res.positionOrder = 1 THEN 1 ELSE 0 END) AS wins,
+                    SUM(CASE WHEN res.positionOrder <= 3 THEN 1 ELSE 0 END) AS podiums,
+                    SUM(res.points) AS total_points,
+                    ROUND(AVG(CAST(res.positionOrder AS FLOAT)), 2) AS avg_finish
+                FROM results res
+                JOIN drivers d ON d.driverId = res.driverId
+                JOIN races r ON r.raceId = res.raceId
+                WHERE r.year = ?
+                GROUP BY r.year, d.driverId, d.forename, d.surname
+                ORDER BY total_points DESC, wins DESC, podiums DESC, d.driverId;
+                """;
+
+        try (PreparedStatement yearsStmt = connection.prepareStatement(yearsSql);
+            ResultSet yearsRs = yearsStmt.executeQuery()) {
+
+            while (yearsRs.next()) {
+                years.add(yearsRs.getInt("year"));
             }
-        }
-        catch(SQLException e){
+
+            if (years.isEmpty()) {
+                System.out.println("No seasons found.");
+            } else {
+                int index = 0;
+                boolean exit = false;
+
+                while (!exit) {
+                    int selectedYear = years.get(index);
+
+                    try (PreparedStatement performanceStmt = connection.prepareStatement(performanceSql)) {
+                        performanceStmt.setInt(1, selectedYear);
+
+                        try (ResultSet resultSet = performanceStmt.executeQuery()) {
+                            System.out.println("\nMost Successful Drivers By Season");
+                            System.out.println("Year: " + selectedYear);
+
+                            System.out.printf(
+                                    "%-10s %-12s %-12s %-8s %-6s %-8s %-14s %-10s%n",
+                                    "driverId", "forename", "surname",
+                                    "races", "wins", "podiums", "total_points", "avg_finish"
+                            );
+                            System.out.println("--------------------------------------------------------------------------");
+
+                            boolean hasRows = false;
+
+                            while (resultSet.next()) {
+                                hasRows = true;
+                                System.out.printf(
+                                        "%-10d %-12s %-12s %-8d %-6d %-8d %-14.1f %-10.2f%n",
+                                        resultSet.getInt("driverId"),
+                                        resultSet.getString("forename"),
+                                        resultSet.getString("surname"),
+                                        resultSet.getInt("races"),
+                                        resultSet.getInt("wins"),
+                                        resultSet.getInt("podiums"),
+                                        resultSet.getDouble("total_points"),
+                                        resultSet.getDouble("avg_finish")
+                                );
+                            }
+
+                            if (!hasRows) {
+                                System.out.println("No driver performance data for this year.");
+                            }
+                        }
+                    }
+
+                    System.out.print("\n[p] previous year | [n] next year | [q] quit | [year] go to year: ");
+                    String input = scanner.nextLine().trim().toLowerCase();
+
+                    switch (input) {
+                        case "n" -> {
+                            if (index < years.size() - 1) {
+                                index++;
+                            } else {
+                                System.out.println("Already at the latest year.");
+                            }
+                        }
+                        case "p" -> {
+                            if (index > 0) {
+                                index--;
+                            } else {
+                                System.out.println("Already at the earliest year.");
+                            }
+                        }
+                        case "q" -> exit = true;
+                        default -> System.out.println("Invalid command.");
+                    }
+                }
+            }
+        } catch (SQLException e) {
             e.printStackTrace(System.out);
         }
     }
 
     public void constructorsWithMostDNF(){
-        try{
-            String sql ="""
-                            with setRetirement as (
-                                select
-                                    r.year,
-                                    c.constructorID,
-                                    c.name,
-                                    sum(case when rs.positionText = 'R' then 1 else 0 end) as countRetirement
-                                from results rs 
-                                join races r ON rs.raceId = r.raceId
-                                join constructors c on c.constructorId = rs.constructorId
-                                group by r.year, c.constructorID, c.name
-                            )
-                            
-                            select  sr.year,
-                                    sr.constructorId,
-									sr.name, 
-                                    sr.countRetirement  
-                            from setRetirement sr 
-                                where(sr.countRetirement = (select max(r2.countRetirement) 
-                                                        from setRetirement r2
-                                                        where r2.year = sr.year))
-                                order by sr.year, sr.countRetirement desc, sr.name desc
-                        """;
-            PreparedStatement statement = connection.prepareStatement(sql);
+        String sql = """
+                        with setRetirement as (
+                            select
+                                r.year,
+                                c.constructorID,
+                                c.name,
+                                sum(case when rs.positionText = 'R' then 1 else 0 end) as countRetirement
+                            from results rs 
+                            join races r ON rs.raceId = r.raceId
+                            join constructors c on c.constructorId = rs.constructorId
+                            group by r.year, c.constructorID, c.name
+                        )
+                        
+                        select  sr.year,
+                                sr.constructorId,
+                                sr.name, 
+                                sr.countRetirement  
+                        from setRetirement sr 
+                            where(sr.countRetirement = (select max(r2.countRetirement) 
+                                                    from setRetirement r2
+                                                    where r2.year = sr.year))
+                            order by sr.year, sr.countRetirement desc, sr.name desc
+                    """;
+        try( PreparedStatement statement = connection.prepareStatement(sql)) {
             ResultSet resultSet = statement.executeQuery();
             System.out.println("Constructors With Most DNFs By Season");
 
@@ -126,7 +189,7 @@ public class F1Database implements AutoCloseable {
                     resultSet.getInt("constructorID"),
                     resultSet.getInt("countRetirement")
                 );
-}
+            }
         }
         catch(SQLException e){
             e.printStackTrace(System.out);
@@ -906,50 +969,114 @@ public class F1Database implements AutoCloseable {
         }
     }
 
-    public void constructorTeammateHeadToHead() {
-        try {
-            String sql = """
-                        SELECT
-                            r.year,
-                            c.name AS constructor_name,
-                            d1.forename + ' ' + d1.surname AS driver_1,
-                            d2.forename + ' ' + d2.surname AS driver_2,
-                            SUM(CASE WHEN res1.positionOrder < res2.positionOrder THEN 1 ELSE 0 END) AS driver_1_ahead,
-                            SUM(CASE WHEN res2.positionOrder < res1.positionOrder THEN 1 ELSE 0 END) AS driver_2_ahead
-                        FROM results res1
-                        JOIN results res2
-                        ON res1.raceId = res2.raceId
-                        AND res1.constructorId = res2.constructorId
-                        AND res1.driverId < res2.driverId
-                        JOIN drivers d1 ON d1.driverId = res1.driverId
-                        JOIN drivers d2 ON d2.driverId = res2.driverId
-                        JOIN constructors c ON c.constructorId = res1.constructorId
-                        JOIN races r ON r.raceId = res1.raceId
-                        WHERE res1.positionOrder IS NOT NULL
-                        AND res2.positionOrder IS NOT NULL
-                        GROUP BY r.year, c.name, d1.forename, d1.surname, d2.forename, d2.surname
-                        ORDER BY r.year, c.name;
-                        """;
+    public void constructorTeammateHeadToHead(Scanner scanner) {
+        List<Integer> years = new ArrayList<>();
+        boolean exit = false;
 
-            PreparedStatement statement = connection.prepareStatement(sql);
-            ResultSet resultSet = statement.executeQuery();
+        String yearsSql = """
+                SELECT DISTINCT year
+                FROM races
+                ORDER BY year;
+                """;
 
-            System.out.println("Constructor Teammate Head-to-Head");
+        String sql = """
+                SELECT
+                    r.year,
+                    c.name AS constructor_name,
+                    d1.forename + ' ' + d1.surname AS driver_1,
+                    d2.forename + ' ' + d2.surname AS driver_2,
+                    SUM(CASE WHEN res1.positionOrder < res2.positionOrder THEN 1 ELSE 0 END) AS driver_1_ahead,
+                    SUM(CASE WHEN res2.positionOrder < res1.positionOrder THEN 1 ELSE 0 END) AS driver_2_ahead
+                FROM results res1
+                JOIN results res2
+                    ON res1.raceId = res2.raceId
+                    AND res1.constructorId = res2.constructorId
+                    AND res1.driverId < res2.driverId
+                JOIN drivers d1 ON d1.driverId = res1.driverId
+                JOIN drivers d2 ON d2.driverId = res2.driverId
+                JOIN constructors c ON c.constructorId = res1.constructorId
+                JOIN races r ON r.raceId = res1.raceId
+                WHERE res1.positionOrder IS NOT NULL
+                AND res2.positionOrder IS NOT NULL
+                AND r.year = ?
+                GROUP BY r.year, c.name, d1.forename, d1.surname, d2.forename, d2.surname
+                ORDER BY c.name, driver_1, driver_2;
+                """;
 
-            System.out.printf("%-6s %-25s %-25s %-25s %-15s %-15s\n",
-                    "year", "constructor", "driver_1", "driver_2", "driver_1_ahead", "driver_2_ahead");
+        try (
+                PreparedStatement yearsStmt = connection.prepareStatement(yearsSql);
+                ResultSet yearsRs = yearsStmt.executeQuery()
+        ) {
+            while (yearsRs.next()) {
+                years.add(yearsRs.getInt("year"));
+            }
 
-            System.out.println("------------------------------------------------------------------------------------------------------------------------");
+            int index = 0;
 
-            while (resultSet.next()) {
-                System.out.printf("%-6d %-25s %-25s %-25s %-15d %-15d\n",
-                        resultSet.getInt("year"),
-                        resultSet.getString("constructor_name"),
-                        resultSet.getString("driver_1"),
-                        resultSet.getString("driver_2"),
-                        resultSet.getInt("driver_1_ahead"),
-                        resultSet.getInt("driver_2_ahead")
-                );
+            if (years.isEmpty()) {
+                System.out.println("No seasons found.");
+                exit = true;
+            }
+
+            while (!exit) {
+
+                int selectedYear = years.get(index);
+
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setInt(1, selectedYear);
+
+                    try (ResultSet resultSet = statement.executeQuery()) {
+
+                        System.out.println("\nConstructor Teammate Head-to-Head");
+                        System.out.println("Year: " + selectedYear);
+
+                        System.out.printf("%-6s %-25s %-25s %-25s %-15s %-15s%n",
+                                "year", "constructor", "driver_1", "driver_2",
+                                "driver_1_ahead", "driver_2_ahead");
+
+                        System.out.println("------------------------------------------------------------------------------------------------------------------------");
+
+                        boolean hasRows = false;
+
+                        while (resultSet.next()) {
+                            hasRows = true;
+                            System.out.printf("%-6d %-25s %-25s %-25s %-15d %-15d%n",
+                                    resultSet.getInt("year"),
+                                    resultSet.getString("constructor_name"),
+                                    resultSet.getString("driver_1"),
+                                    resultSet.getString("driver_2"),
+                                    resultSet.getInt("driver_1_ahead"),
+                                    resultSet.getInt("driver_2_ahead")
+                            );
+                        }
+
+                        if (!hasRows) {
+                            System.out.println("No teammate data for this year.");
+                        }
+                    }
+                }
+
+                System.out.print("\n[p] previous year | [n] next year | [q] quit: ");
+                String input = scanner.nextLine().trim().toLowerCase();
+
+                switch (input) {
+                    case "n" -> {
+                        if (index < years.size() - 1) {
+                            index++;
+                        } else {
+                            System.out.println("Already at the latest year.");
+                        }
+                    }
+                    case "p" -> {
+                        if (index > 0) {
+                            index--;
+                        } else {
+                            System.out.println("Already at the earliest year.");
+                        }
+                    }
+                    case "q" -> exit = true;
+                    default -> System.out.println("Invalid command.");
+                }
             }
 
         } catch (SQLException e) {
