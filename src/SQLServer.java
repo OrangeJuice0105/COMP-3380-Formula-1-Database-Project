@@ -1,3 +1,4 @@
+import java.sql.SQLException;
 import java.util.Scanner;
 
 public class SQLServer {
@@ -12,25 +13,23 @@ public class SQLServer {
             System.out.print("Enter password: ");
             String password = new String(System.console().readPassword());
 
-            F1Database db = new F1Database(username, password);
+            try (F1Database db = new F1Database(username, password)) {
+                boolean exit = false;
 
-            boolean exit = false;
+                System.out.println("\nEnter an option to run a query.");
+                System.out.println("Enter 'h' for help.");
+                System.out.println("Enter 'q' to quit.");
 
-            System.out.println("\nEnter an option to run a query.");
-            System.out.println("Enter 'h' for help.");
-            System.out.println("Enter 'q' to quit.");
+                do {
+                    System.out.print("\nOption: ");
+                    String option = scanner.nextLine().trim();
 
-            do {
-                System.out.print("\nOption: ");
-                String option = scanner.nextLine().trim();
-
-                if (option.equalsIgnoreCase("q")) {
-                    System.out.println("Program terminated.");
-                    exit = true;
-                }  else if (option.equalsIgnoreCase("h")) {
-                    printHelp();
-                } else {
-                    try {
+                    if (option.equalsIgnoreCase("q")) {
+                        System.out.println("Program terminated.");
+                        exit = true;
+                    }  else if (option.equalsIgnoreCase("h")) {
+                        printHelp();
+                    } else {
                         switch (option) {
                             case "1" -> db.driversPerformance();
                             case "2" -> db.constructorsWithMostDNF();
@@ -74,11 +73,11 @@ public class SQLServer {
                             }
                             default -> System.out.println("Invalid option. Enter 'h' for help.");
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace(System.out);
                     }
-                }
-            } while (!exit);
+                } while (!exit);
+            } catch (SQLException e) {
+                System.err.println("Failed to connect to database. Exiting...");
+            }
         }
     }
     

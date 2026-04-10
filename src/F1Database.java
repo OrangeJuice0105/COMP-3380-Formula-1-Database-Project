@@ -4,7 +4,7 @@ import java.nio.file.Paths;
 import java.sql.*;
 import java.util.List;
 
-public class F1Database {
+public class F1Database implements AutoCloseable {
 
 
     private Connection connection; 
@@ -28,20 +28,16 @@ public class F1Database {
         "sprint_results.sql"
     };
 
-    public F1Database(String username, String password) {
-        try {
-            String connectionUrl = 
-                  "jdbc:sqlserver://uranium.cs.umanitoba.ca:1433;"
-                + "database=cs338019;"
-                + "user=" + username +";"
-                + "password="+ password +";"
-                + "encrypt=false;"
-                + "trustServerCertificate=false;"
-                + "loginTimeout=30;"; 
-            connection = DriverManager.getConnection(connectionUrl);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    public F1Database(String username, String password) throws SQLException {
+        String connectionUrl = 
+                "jdbc:sqlserver://uranium.cs.umanitoba.ca:1433;"
+            + "database=cs338019;"
+            + "user=" + username +";"
+            + "password="+ password +";"
+            + "encrypt=false;"
+            + "trustServerCertificate=false;"
+            + "loginTimeout=30;"; 
+        connection = DriverManager.getConnection(connectionUrl);
     }
 
     public void driversPerformance() {
@@ -667,8 +663,7 @@ public class F1Database {
             String sql = """
                         SELECT
                             r.year,
-                            r.name AS race_name,
-                            c.name AS constructor_name
+                            r.name AS race_name
                         FROM results re
                         JOIN races r
                             ON re.raceId = r.raceId
@@ -694,16 +689,15 @@ public class F1Database {
 
             System.out.println("Races Where No Drivers From Constructor Finished");
 
-            System.out.printf("%-6s %-30s %-25s\n",
-                    "year", "race_name", "constructor");
+            System.out.printf("%-6s %-30s\n",
+                    "year", "race_name");
 
             System.out.println("------------------------------------------------------------------");
 
             while (resultSet.next()) {
-                System.out.printf("%-6d %-30s %-25s\n",
+                System.out.printf("%-6d %-30s\n",
                     resultSet.getInt("year"),
-                    resultSet.getString("race_name"),
-                    resultSet.getString("constructor_name")
+                    resultSet.getString("race_name")
                 );
             }
         } catch(SQLException e){
@@ -1166,5 +1160,10 @@ public class F1Database {
                 e.printStackTrace(System.out);
             }
         }
+    }
+
+    @Override
+    public void close() throws SQLException {
+        connection.close();
     }
 }
