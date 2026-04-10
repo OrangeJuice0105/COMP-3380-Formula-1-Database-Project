@@ -3,6 +3,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.List;
+import java.util.Scanner;
 
 public class F1Database implements AutoCloseable {
 
@@ -956,38 +957,67 @@ public class F1Database implements AutoCloseable {
         }
     }
 
-    public void listDrivers() {
-        try {
+    public void listDrivers(Scanner scanner) {
+        final int windowSize = 10;
+        int offset = 0;
+        boolean exit = false;
+        while (!exit) {
             String sql = """
                         SELECT
                             driverId,
                             forename,
                             surname
                         FROM drivers
-                        ORDER BY driverId;
+                        ORDER BY driverId
+                        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;
                         """;
 
-            PreparedStatement statement = connection.prepareStatement(sql);
-            ResultSet resultSet = statement.executeQuery();
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setInt(1, offset);
+                statement.setInt(2, windowSize);
 
-            System.out.println("Drivers List");
+                ResultSet resultSet = statement.executeQuery();
 
-            // header
-            System.out.printf("%-10s %-15s %-15s\n",
-                    "id", "forename", "surname");
+                System.out.println("\nDrivers List");
+                System.out.printf("Showing %d - %d%n", offset + 1, offset + windowSize);
 
-            System.out.println("------------------------------------------");
+                // header
+                System.out.printf("%-10s %-15s %-15s\n",
+                        "id", "forename", "surname");
 
-            while (resultSet.next()) {
-                System.out.printf("%-10d %-15s %-15s\n",
-                        resultSet.getInt("driverId"),
-                        resultSet.getString("forename"),
-                        resultSet.getString("surname")
-                );
+                System.out.println("------------------------------------------");
+
+                boolean hasRows = false;
+
+                while (resultSet.next()) {
+                    hasRows = true;
+                    System.out.printf("%-10d %-15s %-15s\n",
+                            resultSet.getInt("driverId"),
+                            resultSet.getString("forename"),
+                            resultSet.getString("surname")
+                    );
+                }
+
+                if (!hasRows && offset > 0) {
+                    // went too far → go back
+                    offset -= windowSize;
+                    System.out.println("No more records.");
+                } else {
+                    // controls
+                    System.out.print("\n[n] next | [p] previous | [q] quit: ");
+                    String input = scanner.nextLine().trim().toLowerCase();
+
+                    switch (input) {
+                        case "n" -> offset += windowSize;
+                        case "p" -> offset = Math.max(0, offset - windowSize);
+                        case "q" -> exit = true;
+                        default -> System.out.println("Invalid command.");
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace(System.out);
+                exit = true;
             }
-
-        } catch (SQLException e) {
-            e.printStackTrace(System.out);
         }
     }
 

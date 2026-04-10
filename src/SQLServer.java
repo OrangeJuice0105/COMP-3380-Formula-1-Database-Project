@@ -50,7 +50,7 @@ public class SQLServer {
                             case "13" -> db.worstPoleToWinRatio();
                             case "14" -> db.fastestAveragePitStopTeamBySeason();
                             case "15" -> db.constructorTeammateHeadToHead();
-                            case "16" -> db.listDrivers();
+                            case "16" -> db.listDrivers(scanner);
                             case "17" -> db.listConstructors();
                             case "18" -> db.listCircuits();
                             case "19" -> {
