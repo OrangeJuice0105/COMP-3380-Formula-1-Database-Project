@@ -27,4 +27,3 @@ Our reference for diagrams can be found [here](docs/references.md).
 ### Additional docs:
 
 For fast file transfer to Aviary, refer to [this](developerNotes.md).
-
