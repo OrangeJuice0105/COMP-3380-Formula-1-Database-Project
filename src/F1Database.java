@@ -82,7 +82,7 @@ public class F1Database implements AutoCloseable {
             if (years.isEmpty()) {
                 System.out.println("No seasons found.");
             } else {
-                int index = 0;
+                int index = years.size() - 1;
                 boolean exit = false;
 
                 while (!exit) {
@@ -487,7 +487,7 @@ public class F1Database implements AutoCloseable {
             if (years.isEmpty()) {
                 System.out.println("No seasons found.");
             } else {
-                int index = 0;
+                int index = years.size() - 1;
                 boolean exit = false;
                 boolean showAllRaces = true;
                 String selectedRace = null;
@@ -1209,7 +1209,7 @@ public class F1Database implements AutoCloseable {
                 years.add(yearsRs.getInt("year"));
             }
 
-            int index = 0;
+            int index = years.size() - 1;
 
             if (years.isEmpty()) {
                 System.out.println("No seasons found.");
