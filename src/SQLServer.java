@@ -32,7 +32,7 @@ public class SQLServer {
                     } else {
                         switch (option) {
                             case "1" -> db.driversPerformance(scanner);
-                            case "2" -> db.constructorsWithMostDNF();
+                            case "2" -> db.constructorsWithMostDNF(scanner);
                             case "3" -> db.hatTrackList();
                             case "4" -> db.grandSlime();
                             case "5" -> db.lapDegradation();
@@ -51,8 +51,8 @@ public class SQLServer {
                             case "14" -> db.fastestAveragePitStopTeamBySeason();
                             case "15" -> db.constructorTeammateHeadToHead(scanner);
                             case "16" -> db.listDrivers(scanner);
-                            case "17" -> db.listConstructors();
-                            case "18" -> db.listCircuits();
+                            case "17" -> db.listConstructors(scanner);
+                            case "18" -> db.listCircuits(scanner);
                             case "19" -> {
                                 System.out.print("Are you sure you want to delete all data? (y/N): ");
                                 String deleteConfirm = scanner.nextLine().trim();

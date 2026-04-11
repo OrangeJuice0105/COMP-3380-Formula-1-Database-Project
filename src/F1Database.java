@@ -142,7 +142,20 @@ public class F1Database implements AutoCloseable {
                             }
                         }
                         case "q" -> exit = true;
-                        default -> System.out.println("Invalid command.");
+                        default -> {
+                            try {
+                                int requestedYear = Integer.parseInt(input);
+                                int yearIndex = years.indexOf(requestedYear);
+
+                                if (yearIndex >= 0) {
+                                    index = yearIndex;
+                                } else {
+                                    System.out.printf("Year %d not found.\n", requestedYear);
+                                }
+                            } catch (NumberFormatException e) {
+                                System.out.println("Invalid command.");
+                            }
+                        }
                     }
                 }
             }
@@ -151,7 +164,7 @@ public class F1Database implements AutoCloseable {
         }
     }
 
-    public void constructorsWithMostDNF(){
+    public void constructorsWithMostDNF(Scanner scanner){
         String sql = """
                         with setRetirement as (
                             select
@@ -1148,41 +1161,72 @@ public class F1Database implements AutoCloseable {
         }
     }
 
-    public void listConstructors() {
-        try {
+    public void listConstructors(Scanner scanner) {
+        final int windowSize = 10;
+        int offset = 0;
+        boolean exit = false;
+        while (!exit) {
             String sql = """
                         SELECT
                             constructorId,
                             name
                         FROM constructors
-                        ORDER BY constructorId;
+                        ORDER BY constructorId
+                        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;
                         """;
 
-            PreparedStatement statement = connection.prepareStatement(sql);
-            ResultSet resultSet = statement.executeQuery();
+            try (PreparedStatement statement = connection.prepareStatement(sql)){
+                statement.setInt(1, offset);
+                statement.setInt(2, windowSize);
 
-            System.out.println("Constructors List");
+                ResultSet resultSet = statement.executeQuery();
 
-            // header
-            System.out.printf("%-10s %-25s\n",
-                    "id", "name");
+                System.out.println("Constructors List");
+                System.out.printf("Showing %d - %d%n", offset + 1, offset + windowSize);
+                // header
+                System.out.printf("%-10s %-25s\n",
+                        "id", "name");
 
-            System.out.println("------------------------------------------");
+                System.out.println("------------------------------------------");
 
-            while (resultSet.next()) {
-                System.out.printf("%-10d %-25s\n",
-                        resultSet.getInt("constructorId"),
-                        resultSet.getString("name")
-                );
+                boolean hasRows = false;
+
+                while (resultSet.next()) {
+                    hasRows = true;
+                    System.out.printf("%-10d %-25s\n",
+                            resultSet.getInt("constructorId"),
+                            resultSet.getString("name")
+                    );
+                }
+
+                if (!hasRows && offset > 0) {
+                    // went too far → go back
+                    offset -= windowSize;
+                    System.out.println("No more records.");
+                } else {
+                    // controls
+                    System.out.print("\n[n] next | [p] previous | [q] quit: ");
+                    String input = scanner.nextLine().trim().toLowerCase();
+
+                    switch (input) {
+                        case "n" -> offset += windowSize;
+                        case "p" -> offset = Math.max(0, offset - windowSize);
+                        case "q" -> exit = true;
+                        default -> System.out.println("Invalid command.");
+                    }
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace(System.out);
             }
-
-        } catch (SQLException e) {
-            e.printStackTrace(System.out);
         }
     }
 
-    public void listCircuits() {
-        try {
+    public void listCircuits(Scanner scanner) {
+        final int windowSize = 10;
+        int offset = 0;
+        boolean exit = false;
+        while (!exit) {
             String sql = """
                         SELECT
                             circuitId,
@@ -1190,31 +1234,57 @@ public class F1Database implements AutoCloseable {
                             location,
                             country
                         FROM circuits
-                        ORDER BY circuitId;
+                        ORDER BY circuitId
+                        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;
                         """;
 
-            PreparedStatement statement = connection.prepareStatement(sql);
-            ResultSet resultSet = statement.executeQuery();
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setInt(1, offset);
+                statement.setInt(2, windowSize);
 
-            System.out.println("Circuits List");
+                ResultSet resultSet = statement.executeQuery();
 
-            // header
-            System.out.printf("%-6s %-30s %-20s %-20s\n",
-                    "id", "name", "location", "country");
+                System.out.println("Circuits List");
+                System.out.printf("Showing %d - %d%n", offset + 1, offset + windowSize);
 
-            System.out.println("--------------------------------------------------------------------------------");
+                
+                System.out.printf("%-6s %-30s %-20s %-20s\n",
+                        "id", "name", "location", "country");
 
-            while (resultSet.next()) {
-                System.out.printf("%-6d %-30s %-20s %-20s\n",
+                System.out.println("--------------------------------------------------------------------------------");
+
+                boolean hasRows = false;
+
+                while (resultSet.next()) {
+                    hasRows = true;
+                    System.out.printf("%-6d %-30s %-20s %-20s\n",
                         resultSet.getInt("circuitId"),
                         resultSet.getString("name"),
                         resultSet.getString("location"),
                         resultSet.getString("country")
-                );
-            }
+                    );
+                }
 
-        } catch (SQLException e) {
-            e.printStackTrace(System.out);
+                if (!hasRows && offset > 0) {
+                    // went too far → go back
+                    offset -= windowSize;
+                    System.out.println("No more records.");
+                } else {
+                    // controls
+                    System.out.print("\n[n] next | [p] previous | [q] quit: ");
+                    String input = scanner.nextLine().trim().toLowerCase();
+
+                    switch (input) {
+                        case "n" -> offset += windowSize;
+                        case "p" -> offset = Math.max(0, offset - windowSize);
+                        case "q" -> exit = true;
+                        default -> System.out.println("Invalid command.");
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace(System.out);
+                exit = true;
+            }
         }
     }
 
