@@ -8,6 +8,7 @@ import java.util.Scanner;
 
 public class F1Database implements AutoCloseable {
 
+    private static final int WINDOW_SIZE = 10;
 
     private Connection connection;
 
@@ -1111,7 +1112,6 @@ public class F1Database implements AutoCloseable {
     }
 
     public void listDrivers(Scanner scanner) {
-        final int windowSize = 10;
         int offset = 0;
         boolean exit = false;
         while (!exit) {
@@ -1127,12 +1127,12 @@ public class F1Database implements AutoCloseable {
 
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 statement.setInt(1, offset);
-                statement.setInt(2, windowSize);
+                statement.setInt(2, WINDOW_SIZE);
 
                 ResultSet resultSet = statement.executeQuery();
 
                 System.out.println("\nDrivers List");
-                System.out.printf("Showing %d - %d%n", offset + 1, offset + windowSize);
+                System.out.printf("Showing %d - %d%n", offset + 1, offset + WINDOW_SIZE);
 
                 // header
                 System.out.printf("%-10s %-15s %-15s\n",
@@ -1153,7 +1153,7 @@ public class F1Database implements AutoCloseable {
 
                 if (!hasRows && offset > 0) {
                     // went too far → go back
-                    offset -= windowSize;
+                    offset -= WINDOW_SIZE;
                     System.out.println("No more records.");
                 } else {
                     // controls
@@ -1161,8 +1161,8 @@ public class F1Database implements AutoCloseable {
                     String input = scanner.nextLine().trim().toLowerCase();
 
                     switch (input) {
-                        case "n" -> offset += windowSize;
-                        case "p" -> offset = Math.max(0, offset - windowSize);
+                        case "n" -> offset += WINDOW_SIZE;
+                        case "p" -> offset = Math.max(0, offset - WINDOW_SIZE);
                         case "q" -> exit = true;
                         default -> System.out.println("Invalid command.");
                     }
@@ -1175,7 +1175,6 @@ public class F1Database implements AutoCloseable {
     }
 
     public void listConstructors(Scanner scanner) {
-        final int windowSize = 10;
         int offset = 0;
         boolean exit = false;
         while (!exit) {
@@ -1190,12 +1189,12 @@ public class F1Database implements AutoCloseable {
 
             try (PreparedStatement statement = connection.prepareStatement(sql)){
                 statement.setInt(1, offset);
-                statement.setInt(2, windowSize);
+                statement.setInt(2, WINDOW_SIZE);
 
                 ResultSet resultSet = statement.executeQuery();
 
                 System.out.println("Constructors List");
-                System.out.printf("Showing %d - %d%n", offset + 1, offset + windowSize);
+                System.out.printf("Showing %d - %d%n", offset + 1, offset + WINDOW_SIZE);
                 // header
                 System.out.printf("%-10s %-25s\n",
                         "id", "name");
@@ -1214,7 +1213,7 @@ public class F1Database implements AutoCloseable {
 
                 if (!hasRows && offset > 0) {
                     // went too far → go back
-                    offset -= windowSize;
+                    offset -= WINDOW_SIZE;
                     System.out.println("No more records.");
                 } else {
                     // controls
@@ -1222,8 +1221,8 @@ public class F1Database implements AutoCloseable {
                     String input = scanner.nextLine().trim().toLowerCase();
 
                     switch (input) {
-                        case "n" -> offset += windowSize;
-                        case "p" -> offset = Math.max(0, offset - windowSize);
+                        case "n" -> offset += WINDOW_SIZE;
+                        case "p" -> offset = Math.max(0, offset - WINDOW_SIZE);
                         case "q" -> exit = true;
                         default -> System.out.println("Invalid command.");
                     }
@@ -1236,7 +1235,6 @@ public class F1Database implements AutoCloseable {
     }
 
     public void listCircuits(Scanner scanner) {
-        final int windowSize = 10;
         int offset = 0;
         boolean exit = false;
         while (!exit) {
@@ -1253,12 +1251,12 @@ public class F1Database implements AutoCloseable {
 
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 statement.setInt(1, offset);
-                statement.setInt(2, windowSize);
+                statement.setInt(2, WINDOW_SIZE);
 
                 ResultSet resultSet = statement.executeQuery();
 
                 System.out.println("Circuits List");
-                System.out.printf("Showing %d - %d%n", offset + 1, offset + windowSize);
+                System.out.printf("Showing %d - %d%n", offset + 1, offset + WINDOW_SIZE);
 
                 
                 System.out.printf("%-6s %-30s %-20s %-20s\n",
@@ -1280,7 +1278,7 @@ public class F1Database implements AutoCloseable {
 
                 if (!hasRows && offset > 0) {
                     // went too far → go back
-                    offset -= windowSize;
+                    offset -= WINDOW_SIZE;
                     System.out.println("No more records.");
                 } else {
                     // controls
@@ -1288,8 +1286,8 @@ public class F1Database implements AutoCloseable {
                     String input = scanner.nextLine().trim().toLowerCase();
 
                     switch (input) {
-                        case "n" -> offset += windowSize;
-                        case "p" -> offset = Math.max(0, offset - windowSize);
+                        case "n" -> offset += WINDOW_SIZE;
+                        case "p" -> offset = Math.max(0, offset - WINDOW_SIZE);
                         case "q" -> exit = true;
                         default -> System.out.println("Invalid command.");
                     }
