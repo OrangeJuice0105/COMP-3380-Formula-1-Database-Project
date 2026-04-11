@@ -1069,7 +1069,7 @@ public class F1Database implements AutoCloseable {
                     }
                 }
 
-                System.out.print("\n[p] previous year | [n] next year | [q] quit: ");
+                System.out.print("\n[p] previous year | [n] next year | [q] quit | [year] go to year: ");
                 String input = scanner.nextLine().trim().toLowerCase();
 
                 switch (input) {
