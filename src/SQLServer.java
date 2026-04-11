@@ -33,8 +33,8 @@ public class SQLServer {
                         switch (option) {
                             case "1" -> db.driversPerformance(scanner);
                             case "2" -> db.constructorsWithMostDNF(scanner);
-                            case "3" -> db.hatTrackList();
-                            case "4" -> db.grandSlime();
+                            case "3" -> db.hatTrickList();
+                            case "4" -> db.grandSlam();
                             case "5" -> db.lapDegradation();
                             case "6" -> db.mostChampionshipPointsInASeason();
                             case "7" -> db.mostConsecutiveDriverWins();

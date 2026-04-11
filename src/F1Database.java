@@ -210,7 +210,7 @@ public class F1Database implements AutoCloseable {
         }
     }
 
-    public void hatTrackList(){
+    public void hatTrickList(){
         try {
             String sql ="""
                             WITH race_winners AS (
@@ -294,7 +294,7 @@ public class F1Database implements AutoCloseable {
         }
     }
 
-    public void grandSlime(){
+    public void grandSlam(){
         try {
             String sql ="""
                            WITH race_winners AS (
