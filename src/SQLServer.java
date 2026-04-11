@@ -43,7 +43,7 @@ public class SQLServer {
                             case "10" -> {
                                 System.out.print("Enter constructor name: ");
                                 String constructorName = scanner.nextLine().trim();
-                                db.racesForSingleConstructorThatNoDriversAreClassified(constructorName);
+                                db.racesForSingleConstructorThatNoDriversAreClassified(constructorName, scanner);
                             }
                             case "11" -> db.racesWhereAllDriversAreClassified();
                             case "12" -> db.winsWithoutPole();

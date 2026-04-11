@@ -167,7 +167,11 @@ public class F1Database implements AutoCloseable {
     }
 
     public void constructorsWithMostDNF(Scanner scanner){
-        String sql = """
+        final int windowSize = 10;
+        int offset = 0;
+        boolean exit = false;
+        while (!exit) {
+            String sql = """
                         with setRetirement as (
                             select
                                 r.year,
@@ -189,25 +193,54 @@ public class F1Database implements AutoCloseable {
                                                     from setRetirement r2
                                                     where r2.year = sr.year))
                             order by sr.year, sr.countRetirement desc, sr.name desc
-                    """;
-        try( PreparedStatement statement = connection.prepareStatement(sql)) {
-            ResultSet resultSet = statement.executeQuery();
-            System.out.println("Constructors With Most DNFs By Season");
+                        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;
+                        """;
 
-            System.out.printf("%-25s %-6s %-10s %-10s\n",
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setInt(1, offset);
+                statement.setInt(2, windowSize);
+
+                ResultSet resultSet = statement.executeQuery();
+
+                System.out.println("Constructors With Most DNFs By Season");
+                System.out.printf("Showing %d - %d%n", offset + 1, offset + windowSize);
+
+                System.out.printf("%-25s %-6s %-10s %-10s\n",
                     "name", "year", "id", "count");
-            System.out.println("------------------------------------------------------");
-            while (resultSet.next()) {
-                System.out.printf("%-25s %-6d %-10d %-10d\n",
-                    resultSet.getString("name"),
-                    resultSet.getInt("year"),
-                    resultSet.getInt("constructorID"),
-                    resultSet.getInt("countRetirement")
-                );
+                System.out.println("-------------------------------------------------------------");
+
+                boolean hasRows = false;
+
+                while (resultSet.next()) {
+                    hasRows = true;
+                    System.out.printf("%-25s %-6d %-10d %-10d\n",
+                        resultSet.getString("name"),
+                        resultSet.getInt("year"),
+                        resultSet.getInt("constructorID"),
+                        resultSet.getInt("countRetirement")
+                    );
+                }
+
+                if (!hasRows && offset > 0) {
+                    // went too far → go back
+                    offset -= windowSize;
+                    System.out.println("No more records.");
+                } else {
+                    // controls
+                    System.out.print("\n[n] next | [p] previous | [q] quit: ");
+                    String input = scanner.nextLine().trim().toLowerCase();
+
+                    switch (input) {
+                        case "n" -> offset += windowSize;
+                        case "p" -> offset = Math.max(0, offset - windowSize);
+                        case "q" -> exit = true;
+                        default -> System.out.println("Invalid command.");
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace(System.out);
+                exit = true;
             }
-        }
-        catch(SQLException e){
-            e.printStackTrace(System.out);
         }
     }
 
@@ -891,8 +924,11 @@ public class F1Database implements AutoCloseable {
         }
     }
 
-    public void racesForSingleConstructorThatNoDriversAreClassified(String name){
-        try {
+    public void racesForSingleConstructorThatNoDriversAreClassified(String name, Scanner scanner){
+        final int windowSize = 10;
+        int offset = 0;
+        boolean exit = false;
+        while (!exit) {
             String sql = """
                         SELECT
                             r.year,
@@ -914,27 +950,55 @@ public class F1Database implements AutoCloseable {
                                 ELSE 0
                             END
                         ) = 0
-                        ORDER BY r.year;                   
+                        ORDER BY r.year
+                        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;
                         """;
-            PreparedStatement statement = connection.prepareStatement(sql);
-			statement.setString(1, name);
-			ResultSet resultSet = statement.executeQuery();
 
-            System.out.println("Races Where No Drivers From Constructor Finished");
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setString(1, name);
+                statement.setInt(2, offset);
+                statement.setInt(3, windowSize);
+                
+                ResultSet resultSet = statement.executeQuery();
 
-            System.out.printf("%-6s %-30s\n",
+                System.out.println("Races Where No Drivers From Constructor Finished");
+                System.out.printf("Showing %d - %d%n", offset + 1, offset + windowSize);
+
+                System.out.printf("%-6s %-30s\n",
                     "year", "race_name");
 
-            System.out.println("------------------------------------------------------------------");
+                System.out.println("------------------------------------------------------------------");
 
-            while (resultSet.next()) {
-                System.out.printf("%-6d %-30s\n",
-                    resultSet.getInt("year"),
-                    resultSet.getString("race_name")
-                );
+                boolean hasRows = false;
+
+                while (resultSet.next()) {
+                    hasRows = true;
+                    System.out.printf("%-6d %-30s\n",
+                        resultSet.getInt("year"),
+                        resultSet.getString("race_name")
+                    );
+                }
+
+                if (!hasRows && offset > 0) {
+                    // went too far → go back
+                    offset -= windowSize;
+                    System.out.println("No more records.");
+                } else {
+                    // controls
+                    System.out.print("\n[n] next | [p] previous | [q] quit: ");
+                    String input = scanner.nextLine().trim().toLowerCase();
+
+                    switch (input) {
+                        case "n" -> offset += windowSize;
+                        case "p" -> offset = Math.max(0, offset - windowSize);
+                        case "q" -> exit = true;
+                        default -> System.out.println("Invalid command.");
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace(System.out);
+                exit = true;
             }
-        } catch(SQLException e){
-            e.printStackTrace(System.out);
         }
     }
 
