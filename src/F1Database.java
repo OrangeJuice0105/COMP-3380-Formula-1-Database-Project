@@ -94,18 +94,18 @@ public class F1Database implements AutoCloseable {
                             System.out.println("Year: " + selectedYear);
 
                             System.out.printf(
-                                    "%-10s %-12s %-12s %-8s %-6s %-8s %-14s %-10s%n",
+                                    "%-10s %-12s %-18s %-8s %-6s %-8s %-14s %-10s%n",
                                     "driverId", "forename", "surname",
                                     "races", "wins", "podiums", "total_points", "avg_finish"
                             );
-                            System.out.println("--------------------------------------------------------------------------");
+                            System.out.println("----------------------------------------------------------------------------------------------");
 
                             boolean hasRows = false;
 
                             while (resultSet.next()) {
                                 hasRows = true;
                                 System.out.printf(
-                                        "%-10d %-12s %-12s %-8d %-6d %-8d %-14.1f %-10.2f%n",
+                                        "%-10d %-12s %-18s %-8d %-6d %-8d %-14.1f %-10.2f%n",
                                         resultSet.getInt("driverId"),
                                         resultSet.getString("forename"),
                                         resultSet.getString("surname"),
