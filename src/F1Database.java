@@ -1088,7 +1088,20 @@ public class F1Database implements AutoCloseable {
                         }
                     }
                     case "q" -> exit = true;
-                    default -> System.out.println("Invalid command.");
+                    default -> {
+                        try {
+                            int requestedYear = Integer.parseInt(input);
+                            int yearIndex = years.indexOf(requestedYear);
+
+                            if (yearIndex >= 0) {
+                                index = yearIndex;
+                            } else {
+                                System.out.printf("Year %d not found.\n", requestedYear);
+                            }
+                        } catch (NumberFormatException e) {
+                            System.out.println("Invalid command.");
+                        }
+                    }
                 }
             }
 
