@@ -3,6 +3,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 
@@ -380,92 +381,214 @@ public class F1Database implements AutoCloseable {
         }
     }
     
-    public void lapDegradation(){
-        try {
-            String sql ="""
-                    WITH ordered_stops AS (
-                        SELECT
-                            raceId,
-                            driverId,
-                            stop,
-                            lap AS stop_lap,
-                            LEAD(lap) OVER (
-                                PARTITION BY raceId, driverId
-                                ORDER BY lap
-                            ) AS next_stop_lap
-                        FROM pit_stops
-                    ),
-                    stints AS (
-                        SELECT
-                            raceId,
-                            driverId,
-                            stop,
-                            stop_lap + 1 AS stint_start_lap,
-                            COALESCE(next_stop_lap - 1, 9999) AS stint_end_lap
-                        FROM ordered_stops
-                    ),
-                    stint_laps AS (
-                        SELECT
-                            s.raceId,
-                            s.driverId,
-                            s.stop,
-                            MIN(lt.lap) AS first_lap,
-                            MAX(lt.lap) AS last_lap
-                        FROM stints s
-                        JOIN lap_times lt
+    public void lapDegradation(Scanner scanner) {
+        List<Integer> years = new ArrayList<>();
+
+        String yearsSql = """
+                SELECT DISTINCT year
+                FROM races
+                ORDER BY year;
+                """;
+
+        String baseCte = """
+                WITH ordered_stops AS (
+                    SELECT
+                        raceId,
+                        driverId,
+                        stop,
+                        lap AS stop_lap,
+                        LEAD(lap) OVER (
+                            PARTITION BY raceId, driverId
+                            ORDER BY lap
+                        ) AS next_stop_lap
+                    FROM pit_stops
+                ),
+                stints AS (
+                    SELECT
+                        raceId,
+                        driverId,
+                        stop,
+                        stop_lap + 1 AS stint_start_lap,
+                        COALESCE(next_stop_lap - 1, 9999) AS stint_end_lap
+                    FROM ordered_stops
+                ),
+                stint_laps AS (
+                    SELECT
+                        s.raceId,
+                        s.driverId,
+                        s.stop,
+                        MIN(lt.lap) AS first_lap,
+                        MAX(lt.lap) AS last_lap
+                    FROM stints s
+                    JOIN lap_times lt
                         ON lt.raceId = s.raceId
                         AND lt.driverId = s.driverId
                         AND lt.lap BETWEEN s.stint_start_lap AND s.stint_end_lap
-                        GROUP BY s.raceId, s.driverId, s.stop
-                    ),
-                    stint_times AS (
-                        SELECT
-                            sl.raceId,
-                            sl.driverId,
-                            sl.stop,
-                            first_lt.milliseconds AS first_lap_ms,
-                            last_lt.milliseconds AS last_lap_ms,
-                            last_lt.milliseconds - first_lt.milliseconds AS degradation_ms
-                        FROM stint_laps sl
-                        JOIN lap_times first_lt
+                    GROUP BY s.raceId, s.driverId, s.stop
+                ),
+                stint_times AS (
+                    SELECT
+                        sl.raceId,
+                        sl.driverId,
+                        sl.stop,
+                        first_lt.milliseconds AS first_lap_ms,
+                        last_lt.milliseconds AS last_lap_ms,
+                        last_lt.milliseconds - first_lt.milliseconds AS degradation_ms
+                    FROM stint_laps sl
+                    JOIN lap_times first_lt
                         ON first_lt.raceId = sl.raceId
                         AND first_lt.driverId = sl.driverId
                         AND first_lt.lap = sl.first_lap
-                        JOIN lap_times last_lt
+                    JOIN lap_times last_lt
                         ON last_lt.raceId = sl.raceId
                         AND last_lt.driverId = sl.driverId
                         AND last_lt.lap = sl.last_lap
-                    )
-                    SELECT
-                        r.year,
-                        r.name,
-                        d.forename,
-                        d.surname,
-                        ROUND(AVG(st.degradation_ms * 1.0), 2) AS avg_stint_degradation_ms
-                    FROM stint_times st
-                    JOIN races r ON st.raceId = r.raceId
-                    JOIN drivers d ON d.driverId = st.driverId
-                    GROUP BY d.forename, d.surname, r.year, r.name
-                    ORDER BY avg_stint_degradation_ms DESC;
-                        """;
-            PreparedStatement statement = connection.prepareStatement(sql);
-            ResultSet resultSet = statement.executeQuery();
-           
-            System.out.println("Lap Time Degradation Between Pit Stops");
-            
-            System.out.printf("%-6s %-30s %-15s %-15s %-20s\n",
-                    "year", "race_name", "forename", "surname", "avg_degradation(ms)");
-            System.out.println("------------------------------------------------------");
-            while (resultSet.next()) {
-                System.out.printf("%-6d %-30s %-15s %-15s %-20.2f\n",
-                    resultSet.getInt("year"),
-                    resultSet.getString("name"),
-                    resultSet.getString("forename"),
-                    resultSet.getString("surname"),
-                    resultSet.getDouble("avg_stint_degradation_ms")
-                );
+                )
+                """;
+
+        String allRacesSql = baseCte + """
+                SELECT
+                    r.year,
+                    r.name,
+                    d.forename,
+                    d.surname,
+                    ROUND(AVG(st.degradation_ms * 1.0), 2) AS avg_stint_degradation_ms
+                FROM stint_times st
+                JOIN races r ON st.raceId = r.raceId
+                JOIN drivers d ON d.driverId = st.driverId
+                WHERE r.year = ?
+                GROUP BY r.year, r.name, d.forename, d.surname
+                ORDER BY r.name, avg_stint_degradation_ms DESC, d.surname, d.forename;
+                """;
+
+        String specificRaceSql = baseCte + """
+                SELECT
+                    r.year,
+                    r.name,
+                    d.forename,
+                    d.surname,
+                    ROUND(AVG(st.degradation_ms * 1.0), 2) AS avg_stint_degradation_ms
+                FROM stint_times st
+                JOIN races r ON st.raceId = r.raceId
+                JOIN drivers d ON d.driverId = st.driverId
+                WHERE r.year = ?
+                AND r.name = ?
+                GROUP BY r.year, r.name, d.forename, d.surname
+                ORDER BY avg_stint_degradation_ms DESC, d.surname, d.forename;
+                """;
+
+        try (PreparedStatement yearsStmt = connection.prepareStatement(yearsSql);
+            ResultSet yearsRs = yearsStmt.executeQuery()) {
+
+            while (yearsRs.next()) {
+                years.add(yearsRs.getInt("year"));
             }
-        } catch(SQLException e){
+
+            if (years.isEmpty()) {
+                System.out.println("No seasons found.");
+            } else {
+                int index = 0;
+                boolean exit = false;
+                boolean showAllRaces = true;
+                String selectedRace = null;
+
+                while (!exit) {
+                    int selectedYear = years.get(index);
+                    String sqlToUse = showAllRaces ? allRacesSql : specificRaceSql;
+
+                    try (PreparedStatement statement = connection.prepareStatement(sqlToUse)) {
+                        statement.setInt(1, selectedYear);
+                        if (!showAllRaces) {
+                            statement.setString(2, selectedRace);
+                        }
+
+                        try (ResultSet resultSet = statement.executeQuery()) {
+                            System.out.println("\nLap Time Degradation Between Pit Stops");
+                            System.out.println("Year: " + selectedYear);
+                            System.out.println("View: " + (showAllRaces ? "All races" : selectedRace));
+
+                            System.out.printf("%-6s %-30s %-15s %-15s %-20s%n",
+                                    "year", "race_name", "forename", "surname", "avg_degradation(ms)");
+                            System.out.println("---------------------------------------------------------------------------------------------");
+
+                            boolean hasRows = false;
+
+                            while (resultSet.next()) {
+                                hasRows = true;
+                                System.out.printf("%-6d %-30s %-15s %-15s %-20.2f%n",
+                                        resultSet.getInt("year"),
+                                        resultSet.getString("name"),
+                                        resultSet.getString("forename"),
+                                        resultSet.getString("surname"),
+                                        resultSet.getDouble("avg_stint_degradation_ms")
+                                );
+                            }
+
+                            if (!hasRows) {
+                                System.out.println("No lap degradation data found.");
+                            }
+                        }
+                    }
+
+                    System.out.println("\nCommands:");
+                    System.out.println("  n  -> next year");
+                    System.out.println("  p  -> previous year");
+                    System.out.println("  a  -> view all races in this year");
+                    System.out.println("  r  -> choose a specific race in this year");
+                    System.out.println("  q  -> quit");
+                    System.out.print("Or enter a year directly: ");
+
+                    String input = scanner.nextLine().trim();
+
+                    switch (input.toLowerCase()) {
+                        case "n" -> {
+                            if (index < years.size() - 1) {
+                                index++;
+                            } else {
+                                System.out.println("Already at the latest year.");
+                            }
+                        }
+                        case "p" -> {
+                            if (index > 0) {
+                                index--;
+                            } else {
+                                System.out.println("Already at the earliest year.");
+                            }
+                        }
+                        case "a" -> {
+                            showAllRaces = true;
+                            selectedRace = null;
+                        }
+                        case "r" -> {
+                            System.out.print("Enter exact race name: ");
+                            String raceInput = scanner.nextLine().trim();
+                            if (!raceInput.isEmpty()) {
+                                showAllRaces = false;
+                                selectedRace = raceInput;
+                            } else {
+                                System.out.println("Race name cannot be empty.");
+                            }
+                        }
+                        case "q" -> exit = true;
+                        default -> {
+                            try {
+                                int requestedYear = Integer.parseInt(input);
+                                int yearIndex = Collections.binarySearch(years, requestedYear);
+
+                                if (yearIndex >= 0) {
+                                    index = yearIndex;
+                                } else {
+                                    System.out.println("Year " + requestedYear + " not found.");
+                                }
+                            } catch (NumberFormatException e) {
+                                System.out.println("Invalid command.");
+                            }
+                        }
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
             e.printStackTrace(System.out);
         }
     }

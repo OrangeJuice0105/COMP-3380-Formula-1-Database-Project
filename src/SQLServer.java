@@ -35,7 +35,7 @@ public class SQLServer {
                             case "2" -> db.constructorsWithMostDNF(scanner);
                             case "3" -> db.hatTrickList();
                             case "4" -> db.grandSlam();
-                            case "5" -> db.lapDegradation();
+                            case "5" -> db.lapDegradation(scanner);
                             case "6" -> db.mostChampionshipPointsInASeason();
                             case "7" -> db.mostConsecutiveDriverWins();
                             case "8" -> db.driversWithMostDNF();
