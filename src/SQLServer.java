@@ -11,7 +11,7 @@ public class SQLServer {
             String username = scanner.nextLine().trim();
 
             System.out.print("Enter password: ");
-            String password = new String(System.console().readPassword());
+            String password = scanner.nextLine().trim();
 
             try (F1Database db = new F1Database(username, password)) {
                 boolean exit = false;
