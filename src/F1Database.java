@@ -956,7 +956,7 @@ public class F1Database implements AutoCloseable {
                         JOIN races r ON r.raceId = ps.raceId
                         GROUP BY r.year, c.constructorId, c.name
                         HAVING COUNT(*) >= 5
-                        ORDER BY r.year, avg_pit_ms ASC;
+                        ORDER BY r.year, avg_pit_ms ASC
                         OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;
                         """;
 
