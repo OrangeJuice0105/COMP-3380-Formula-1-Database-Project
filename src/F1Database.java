@@ -935,8 +935,11 @@ public class F1Database implements AutoCloseable {
         }
     }
 
-    public void fastestAveragePitStopTeamBySeason() {
-        try {
+    public void fastestAveragePitStopTeamBySeason(Scanner scanner) {
+        final int windowSize = 10;
+        int offset = 0;
+        boolean exit = false;
+        while (!exit) {
             String sql = """
                         SELECT
                             r.year,
@@ -953,32 +956,58 @@ public class F1Database implements AutoCloseable {
                         GROUP BY r.year, c.constructorId, c.name
                         HAVING COUNT(*) >= 5
                         ORDER BY r.year, avg_pit_ms ASC;
+                        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;
                         """;
 
-            PreparedStatement statement = connection.prepareStatement(sql);
-            ResultSet resultSet = statement.executeQuery();
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setInt(1, offset);
+                statement.setInt(2, windowSize);
 
-            System.out.println("Fastest Average Pit Stop Team by Season");
+                ResultSet resultSet = statement.executeQuery();
 
-            // header
-            System.out.printf("%-6s %-10s %-25s %-12s %-15s\n",
+                System.out.println("Fastest Average Pit Stop Team by Season");
+                System.out.printf("Showing %d - %d%n", offset + 1, offset + windowSize);
+
+                // header
+                System.out.printf("%-6s %-10s %-25s %-12s %-15s\n",
                     "year", "id", "constructor", "stops", "avg_pit_ms");
 
-            // separator
-            System.out.println("-------------------------------------------------------------------------------");
+                // separator
+                System.out.println("-------------------------------------------------------------------------------");
 
-            while (resultSet.next()) {
-                System.out.printf("%-6d %-10d %-25s %-12d %-15.2f\n",
+                boolean hasRows = false;
+
+                while (resultSet.next()) {
+                    hasRows = true;
+                    System.out.printf("%-6d %-10d %-25s %-12d %-15.2f\n",
                         resultSet.getInt("year"),
                         resultSet.getInt("constructorId"),
                         resultSet.getString("name"),
                         resultSet.getInt("total_stops"),
                         resultSet.getDouble("avg_pit_ms")
-                );
-            }
+                    );
+                }
 
-        } catch (SQLException e) {
-            e.printStackTrace(System.out);
+                if (!hasRows && offset > 0) {
+                    // went too far → go back
+                    offset -= windowSize;
+                    System.out.println("No more records.");
+                } else {
+                    // controls
+                    System.out.print("\n[n] next | [p] previous | [q] quit: ");
+                    String input = scanner.nextLine().trim().toLowerCase();
+
+                    switch (input) {
+                        case "n" -> offset += windowSize;
+                        case "p" -> offset = Math.max(0, offset - windowSize);
+                        case "q" -> exit = true;
+                        default -> System.out.println("Invalid command.");
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace(System.out);
+                exit = true;
+            }
         }
     }
 

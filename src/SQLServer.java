@@ -48,7 +48,7 @@ public class SQLServer {
                             case "11" -> db.racesWhereAllDriversAreClassified();
                             case "12" -> db.winsWithoutPole();
                             case "13" -> db.worstPoleToWinRatio();
-                            case "14" -> db.fastestAveragePitStopTeamBySeason();
+                            case "14" -> db.fastestAveragePitStopTeamBySeason(scanner);
                             case "15" -> db.constructorTeammateHeadToHead(scanner);
                             case "16" -> db.listDrivers(scanner);
                             case "17" -> db.listConstructors(scanner);
