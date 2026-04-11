@@ -38,7 +38,7 @@ public class SQLServer {
                             case "5" -> db.lapDegradation();
                             case "6" -> db.mostChampionshipPointsInASeason();
                             case "7" -> db.mostConsecutiveDriverWins();
-                            case "8" -> db.driversWithMostDNF();
+                            case "8" -> db.driversWithMostDNF(scanner);
                             case "9" -> db.mostWinsButNotChampionsSeasons();
                             case "10" -> {
                                 System.out.print("Enter constructor name: ");

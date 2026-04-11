@@ -617,9 +617,12 @@ public class F1Database implements AutoCloseable {
         }
     }
 
-    public void driversWithMostDNF(){
-        try {
-            String sql ="""
+    public void driversWithMostDNF(Scanner scanner){
+        final int windowSize = 10;
+        int offset = 0;
+        boolean exit = false;
+        while (!exit) {
+            String sql = """
                         WITH dnf_per_season AS (
                             SELECT
                                 r.year,
@@ -650,25 +653,54 @@ public class F1Database implements AutoCloseable {
                             ON dps.year = m.year AND dps.dnfs = m.max_dnfs
                         JOIN drivers d
                             ON d.driverId = dps.driverId
-                        ORDER BY dps.year;                               
+                        ORDER BY dps.year
+                        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;
                         """;
-            PreparedStatement statement = connection.prepareStatement(sql);
-            ResultSet resultSet = statement.executeQuery();
-           
-            System.out.println("Drivers With Most DNFs Per Season");
-            
-            System.out.printf("%-6s %-25s %-10s\n",
+
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setInt(1, offset);
+                statement.setInt(2, windowSize);
+
+                ResultSet resultSet = statement.executeQuery();
+
+                System.out.println("Drivers With Most DNFs Per Season");
+                System.out.printf("Showing %d - %d%n", offset + 1, offset + windowSize);
+
+                System.out.printf("%-6s %-25s %-10s\n",
                     "year", "driver_name", "dnfs");
-            System.out.println("------------------------------------------------------");
-            while (resultSet.next()) {
-                System.out.printf("%-6d %-25s %-10d\n",
-                    resultSet.getInt("year"),
-                    resultSet.getString("driver_name"),
-                    resultSet.getInt("dnfs")
-                );
+                System.out.println("------------------------------------------------------");
+
+                boolean hasRows = false;
+
+                while (resultSet.next()) {
+                    hasRows = true;
+                    System.out.printf("%-6d %-25s %-10d\n",
+                        resultSet.getInt("year"),
+                        resultSet.getString("driver_name"),
+                        resultSet.getInt("dnfs")
+                    );
+                }
+
+                if (!hasRows && offset > 0) {
+                    // went too far → go back
+                    offset -= windowSize;
+                    System.out.println("No more records.");
+                } else {
+                    // controls
+                    System.out.print("\n[n] next | [p] previous | [q] quit: ");
+                    String input = scanner.nextLine().trim().toLowerCase();
+
+                    switch (input) {
+                        case "n" -> offset += windowSize;
+                        case "p" -> offset = Math.max(0, offset - windowSize);
+                        case "q" -> exit = true;
+                        default -> System.out.println("Invalid command.");
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace(System.out);
+                exit = true;
             }
-        } catch(SQLException e){
-            e.printStackTrace(System.out);
         }
     }
 
